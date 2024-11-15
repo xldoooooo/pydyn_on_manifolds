@@ -1,7 +1,7 @@
 from pydyn import Add, MAdd
-from pydyn.base.matrices import Matrix, MatrixExpr
+from pydyn.base.matrices import Matrix, MatrixExpr,I,ZeroMatrix
 from pydyn.base.expr import Expr, Expression
-from pydyn.base.scalars import ScalarExpr, Scalar
+from pydyn.base.scalars import ScalarExpr, Scalar, Zero
 from pydyn.base.vectors import VectorExpr, Vector
 from pydyn.base.nodes import BinaryNode
 from pydyn.operations.transpose import Transpose
@@ -225,19 +225,18 @@ class SMMul(BinaryNode, MatrixExpr):
             l = Scalar('(' + str(l) + ')', value=l, attr=['Constant'])
         if type(r) == float or type(r) == int:
             r = Scalar('(' + str(r) + ')', value=r, attr=['Constant'])
-
         if l.type == Expression.MATRIX and r.type == Expression.SCALAR:
-            self.left = l
-            self.right = r
-            self.type = Expression.MATRIX
-        elif l.type == Expression.SCALAR and r.type == Expression.MATRIX:
             self.left = r
             self.right = l
             self.type = Expression.MATRIX
+        elif l.type == Expression.SCALAR and r.type == Expression.MATRIX:
+            self.left = l
+            self.right = r
+            self.type = Expression.MATRIX
         else:
             raise ExpressionMismatchError
-        self.isConstant = self.left.isConstant and self.right.isConstant
-        self.isZero = self.left.isZero or self.right.isZero
+        self.isConstant = self.left.isConstant and self.right.isConstant   
+        self.isZero = self.left.isZero or self.right.isZero 
 
     def __str__(self):
         str = self.left.__str__() + self.right.__str__()
@@ -359,3 +358,5 @@ class VVMul(Expr, BinaryNode):
                 raise UndefinedCaseError
         else:
             return VVMul(self.left.diff(), self.right) + VVMul(self.left, self.right.diff())
+
+

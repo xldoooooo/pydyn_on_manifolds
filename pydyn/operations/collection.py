@@ -1,7 +1,9 @@
 from pydyn.operations.multiplication import Mul, MVMul
 from pydyn.operations.addition import Add
-from pydyn.operations.geometry import Dot, Cross
+from pydyn.operations.geometry import Dot, Cross, Hat
 from pydyn.operations.binary_tree import is_member
+from pydyn.operations.transpose import Transpose
+from pydyn.operations.algebraic_manipulation import getAB
 
 
 def col(_scalar, _vector):
@@ -27,53 +29,29 @@ def col(_scalar, _vector):
         elif _scalar.left == _vector:
             return _scalar
 
-        elif not is_member(_scalar.left, _vector) and not is_member(_scalar.right, _vector):
-            return _scalar
-
-        elif isinstance(_scalar.right, MVMul):
-            raise NotImplementedError
-
-        elif isinstance(_scalar.left, MVMul):
-            raise NotImplementedError
-        #    // Potential Energy
-        #    case Dot(u,VMul(MMul(MMul(r,SkewMat(s)),y),v)) =>
-        #        if (Vec(s) == z) {Dot(Vec(s), Cross(VMul(transpose(r)***y,u),v))}
-        #        else {Dot(u,VMul(MMul(MMul(r,SkewMat(s)),y),v))}
-        #    case Dot(VMul(MMul(r,SkewMat(s)),v),u) =>
-        #        if (Vec(s) == z) {Dot(Vec(s), Cross(VMul(transpose(r),u),v))}
-        #        else {Dot(VMul(MMul(r,SkewMat(s)),v),u)}
-
-        # KINETIC ENERGY
-        elif isinstance(_scalar.left, Cross) and isinstance(_scalar.right, MVMul):
-            return col(Dot(_scalar.right, _scalar.left), _vector)
-        elif isinstance(_scalar.left, MVMul) and isinstance(_scalar.right, Cross):
-            if _scalar.right.left == _vector:
-                return Dot(_scalar.right.left, Cross(_scalar.right.right, _scalar.left))
-            elif _scalar.right.right == _vector:
-                return Dot(_scalar.right.right, Cross(_scalar.left, _scalar.right.left))
-            elif _scalar.left.right == _vector:
-                return Dot(_scalar.left.right, Cross(MVMul(_scalar.left.left, _scalar.right.left), _scalar.right.right))
+        # 这里问题在于：如何整理表达式，合并变分项
+        elif is_member(_scalar.left, _vector):
+            if isinstance(_scalar.left, MVMul):
+                if _scalar.left.right == _vector:
+                    return Dot(_scalar.left.right, MVMul(_scalar.left.left.T(),_scalar.right))
+                else:
+                    A, B = getAB(_scalar.left.left, _vector)
+                    return Dot(_vector, MVMul(Hat(MVMul(B,_scalar.left.right)),MVMul(A.T(),_scalar.right)))
             else:
-                return _scalar
-
-        elif isinstance(_scalar.left, MVMul):
-            if _scalar.left.right == _vector:
-                return Dot(_scalar.left.right, MVMul(_scalar.left.left, _scalar.right))
+                raise NotImplementedError
+        
+        elif is_member(_scalar.right, _vector):
+            if isinstance(_scalar.right, MVMul):
+                if _scalar.right.right == _vector:
+                    return Dot(_scalar.right.right, MVMul(_scalar.right.left.T(), _scalar.left))
+                else:
+                    A, B = getAB(_scalar.left.left, _vector)
+                    return Dot(_vector, MVMul(Hat(MVMul(B,_scalar.right.right)),MVMul(A.T(),_scalar.left)))
             else:
-                return Dot(_scalar.right, _scalar.left)
-        elif isinstance(_scalar.right, MVMul):
-            return col(Dot(_scalar.right, _scalar.left), _vector)
-
-        elif isinstance(_scalar.right, Cross):
-            if _scalar.right.left == _vector:
-                return Dot(_scalar.right.left, Cross(_scalar.right.right, _scalar.left))
-            elif _scalar.right.right == _vector:
-                return Dot(_scalar.right.right, Cross(_scalar.left, _scalar.right.left))
-            else:
-                return _scalar
-
+                raise NotImplementedError
         else:
             return _scalar
-
     else:
         return _scalar
+
+

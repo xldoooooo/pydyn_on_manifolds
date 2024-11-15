@@ -1,7 +1,7 @@
 from abc import ABC
 
 from pydyn.operations.transpose import Transpose
-from pydyn.base.matrices import MatrixExpr
+from pydyn.base.matrices import MatrixExpr, O
 from pydyn.base.scalars import ScalarExpr, Scalar
 from pydyn.base.vectors import VectorExpr, Vector
 from pydyn.base.expr import Expr, Expression
@@ -16,8 +16,8 @@ class Delta(UnaryNode, Expr, ABC):
 
     def __init__(self, expr):
         super().__init__()
-        self.expr = expr
         self.type = expr.type
+        self.expr = expr
 
     def __str__(self):
         return '\delta{' + self.expr.__str__() + '}'
@@ -99,6 +99,8 @@ class Dot(BinaryNode, ScalarExpr, ABC):
             if self.right.left.isSymmetric and self.left == self.right.right:
                 return Add(Dot(self.left.delta(), self.right) * 2,
                            Dot(self.left, MVMul(self.right.left.delta(), self.right.right)))
+            elif self.left == self.right:
+                return Dot(self.left.delta(), self.right) * 2
             else:
                 return Add(Dot(self.left.delta(), self.right), Dot(self.left, self.right.delta()))
         else:
@@ -166,12 +168,16 @@ class Hat(UnaryNode, MatrixExpr, ABC):
         else:
             from pydyn.utils.errors import ExpressionMismatchError
             raise ExpressionMismatchError
+        self.isZero = self.expr.isZero
 
     def __str__(self):
         return 'Hat(' + self.expr.__str__() + ')'
 
     def delta(self):
         return Hat(self.expr.delta())
+    
+    def diff(self):
+        return Hat(self.expr.diff())
 
 
 class Vee(UnaryNode, MatrixExpr, ABC):

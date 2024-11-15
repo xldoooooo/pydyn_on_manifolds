@@ -41,3 +41,6 @@ class Transpose(Expr, UnaryNode, ABC):
 
     def delta(self):
         return Transpose(self.expr.delta())
+    
+    def diff(self):
+        return Transpose(self.expr.diff())

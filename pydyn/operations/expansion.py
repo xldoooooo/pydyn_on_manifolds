@@ -2,6 +2,7 @@ from pydyn.operations.binary_tree import has_nested_add
 from pydyn.operations.geometry import Dot, Cross, Vee, Hat
 from pydyn.operations.addition import Add, VAdd, MAdd
 from pydyn.operations.multiplication import Mul, SMMul, SVMul, MVMul, VVMul, MMMul
+from pydyn.base.expr import Expression
 from pydyn.base.matrices import MatrixExpr
 from pydyn.base.scalars import ScalarExpr
 from pydyn.base.vectors import VectorExpr
@@ -183,18 +184,12 @@ def expand_matrix(expr):
         raise Exception('VVMul in expand_matrix is not implemented')
 
     elif isinstance(expr, Hat):
-        return Hat(expand(expr.expr))
+        if isinstance(expr.expr, VAdd):
+            expanded_expr = MAdd()
+            for n in expr.expr.nodes:
+                expanded_expr += Hat(expand(n))
+            return expanded_expr
+        return Hat(expr.expr)
 
     return expr
 
-
-def expand(expr):
-    # TODO add expand functionality to the Expr class directly
-    if isinstance(expr, ScalarExpr):
-        return expand_scalar(expr)
-    elif isinstance(expr, VectorExpr):
-        return expand_vector(expr)
-    elif isinstance(expr, MatrixExpr):
-        return expand_matrix(expr)
-    else:
-        raise UndefinedCaseError

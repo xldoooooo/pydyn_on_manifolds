@@ -1,118 +1,65 @@
+import sys
+sys.path.append('/home/hyy/pydyn_on_manifolds')
 from pydyn import *
+from pydyn.base.scalars import Scalar, getScalars
+from pydyn.base.vectors import Vector, S2, TS2, TSO3, ZeroVector, getVectors
+from pydyn.base.matrices import Matrix, SO3, O, I, getMatrices
+
+from pydyn.operations.addition import Add, VAdd, MAdd
+from pydyn.operations.multiplication import Mul, MMMul, MVMul, SMMul, SVMul, VVMul
+from pydyn.operations.transpose import Transpose
+from pydyn.operations.geometry import Delta, Dot, Cross, Hat, Vee
+
+from pydyn.operations.dynamics import compute_eom
 from pydyn.operations.print_tree import print_latex
 from pydyn.utils.errors import ExpressionMismatchError
 import numpy as np
+from pydyn.base.expr import Expr
+from pydyn.base.matrices import MatrixExpr, ZeroMatrix
+from pydyn.base.scalars import ScalarExpr, Zero
+from pydyn.base.vectors import VectorExpr
+from pydyn.utils.errors import UndefinedCaseError
+from pydyn.operations.simplification import full_simplify
+from pydyn.operations.expansion import *
+from pydyn.operations.collection import *
+from pydyn.operations.algebraic_manipulation import efs,efv,efm
+from pydyn.operations.simplification import vector_rules
 
+if __name__ == "__main__":
 
-def point_mass():
-    """
-    Derives Newton's equation of motion for 3d point mass
-
-    Variables
-    scalars: mass: m [kg]
-             gravity: g [m/s^2]
-
-    vectors: neg gravity direction: e3 [0,0,1] [No units]
-             point-mass position: x  [m]
-             input force: f [N]
-    """
+    print('\n-----------------------------------\n')
+    J = Matrix('J', attr=['Constant', 'SymmetricMatrix'])
+    rho = Vector('\\rho', attr=['Constant'])
     m, g = getScalars('m g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x, f = getVectors(['x', 'f'])
+    e3 = Vector('e_3', attr=['Constant'], value=np.array([0., 0., 1]))
 
+    M = Vector('M')
+    R = SO3('R')
+    Om = R.get_tangent_vector()
+    eta = R.get_variation_vector()
+    x = R * rho
     v = x.diff()
+    KE = Dot(Om, J * Om) * 0.5 + Dot(v, v) * m * 0.5
 
-    # computing energies
-    PE = m * x.dot(g * e3)
-    KE = m * Dot(v, v) * 0.5
-
-    # Lagrangian
+    PE = m * g * Dot(x, e3)
     L = KE - PE
 
-    # infinitesimal work
-    deltaW = Dot(x.delta(), f)
-
-    eqs = compute_eom(L, deltaW, [[], [x], []])
-    print_latex(eqs)
+    deltaW = Dot(eta, M)
+    eqns = compute_eom(L, deltaW, [[], [], [R]])
+    print_latex(eqns)
 
     print('done')
 
-
-def two_point_masses():
-    """
-    two point masses
-    """
-    m1, m2, g = getScalars('m1 m2 g', attr=['Constant'])
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))
-    x1, f1, x2, f2 = getVectors(['x1', 'f1', 'x2', 'f2'])
-
-    v1, v2 = x1.diff(), x2.diff()
-    # computing energies
-    PE = m1 * x1.dot((g * e3)) + m2 * x2.dot(g * e3)
-    KE = m1 * Dot(v1, v1) * 0.5 + m2 * Dot(v2, v2) * 0.5
-
-    # Lagrangian
-    L = KE - PE
-    # infinitesimal work
-    dW = Dot(x1.delta(), f1) + Dot(x2.delta(), f2)
-
-    eqs = compute_eom(L, dW, [[], [x1, x2], []])
-    print_latex(eqs)
+    # c = Dot(eta,Hat(I*rho)*(R*I).T()*R*Hat(Om)*rho)*m
+    # c = vector_rules(c)
+    # print(c)
 
 
-def iteration_point_masses():
-    """
-    iteration_point_masses
-    """
-    # TODO
-    pass
 
 
-def spherical_pendulum():
-    """
-    Derives equation of motion for a spherical pendulum
-
-    Variables
-    scalars:    mass: m [kg]
-                length: l [m]
-                gravity: g [m/s^2]
-
-    vectors: neg gravity direction: e3 [0,0,1] [No units]
-             pendulum attitude: q in S2 [No units]
-             input force: f [N]
-    """
-    # define constant scalars
-    # mass, acceleration due to gravity, length of the pendulum
-    m, g, l = getScalars('m g l', attr=['Constant'])
-
-    e3 = Vector('e3', attr=['Constant'], value=np.array([0., 0., 1]))  # gravity direction
-
-    q = S2('q')
-    om = q.get_tangent_vector()
-    f = Vector('f')  # external force
-
-    variables = [[], [q], []]
-
-    x = l * q
-    v = x.diff()
-    # computing energies
-    PE = m * x.dot((g * e3))
-    KE = m * Dot(v, v) * 0.5
-
-    # Lagrangian
-    L = KE - PE
-    # infinitesimal work
-    dW = Dot(q.delta(), f)
-
-    eqs = compute_eom(L, dW, variables)
-    # print_latex(eqs)
 
 
-if __name__ == "__main__":
-    # print('\n-----------------------------------\n')
-    # print('generating dynamics for two independent point masses')
-    # two_point_masses()
+            
 
-    print('\n-----------------------------------\n')
-    print('generating dynamics for spherical pendulum')
-    spherical_pendulum()
+
+

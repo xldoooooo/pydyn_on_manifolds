@@ -1,11 +1,13 @@
 from pydyn.operations.transpose import Transpose
-from pydyn.base.matrices import Matrix, ZeroMatrix
+from pydyn.base.matrices import Matrix, ZeroMatrix, I
 from pydyn.base.vectors import Vector
 from pydyn.base.expr import Expression
 from pydyn.utils.errors import UndefinedCaseError
 from pydyn.operations.addition import Add, VAdd, MAdd
 from pydyn.operations.multiplication import Mul, SVMul, SMMul, VVMul, MVMul, MMMul
 from pydyn.operations.geometry import Dot, Cross, Hat
+from pydyn.operations.binary_tree import is_member
+from pydyn.base.scalars import One
 
 
 def extract_coeff(expr, sym):
@@ -205,6 +207,19 @@ def efm(expr, vec):
         raise NotImplementedError
     else:
         raise UndefinedCaseError
+
+def getAB(expr, vec):
+    "从expr矩阵中提取Hat(vec)的左右两边"
+    if isinstance(expr, MMMul):
+        if is_member(expr.left, vec):
+            A, B = getAB(expr.left, vec)
+            return A, MMMul(B, expr.right)
+        elif is_member(expr.right, vec):
+            A, B = getAB(expr.right, vec)
+            return MMMul(expr.left,A), B
+    elif isinstance(expr, Hat):
+        if expr.expr == vec:
+            return I, I
 
 
 def solve_for(expr, variable):

@@ -1,4 +1,16 @@
+import sys
+sys.path.append('/home/hyy/pydyn_on_manifolds')
 from pydyn import *
+from pydyn.base.scalars import Scalar, getScalars
+from pydyn.base.vectors import Vector, S2, TS2, TSO3, ZeroVector, getVectors
+from pydyn.base.matrices import Matrix, SO3, O, I, getMatrices
+
+from pydyn.operations.addition import Add, VAdd, MAdd
+from pydyn.operations.multiplication import Mul, MMMul, MVMul, SMMul, SVMul, VVMul
+from pydyn.operations.transpose import Transpose
+from pydyn.operations.geometry import Delta, Dot, Cross, Hat, Vee
+
+from pydyn.operations.dynamics import compute_eom
 from pydyn.operations.print_tree import print_latex
 from pydyn.utils.errors import ExpressionMismatchError
 import numpy as np
@@ -60,5 +72,4 @@ def double_rigid_pendulum():
 
 
 if __name__ == "__main__":
-    # rigid_pendulum()
-    double_rigid_pendulum()
+    rigid_pendulum()

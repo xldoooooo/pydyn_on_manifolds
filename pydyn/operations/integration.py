@@ -1,7 +1,7 @@
 from pydyn.base.expr import Expression
 from pydyn.operations.collection import col
 from pydyn.operations.expansion import expand
-from pydyn.operations.simplification import full_simplify
+from pydyn.operations.simplification import full_simplify, vector_rules
 from pydyn.operations.geometry import Dot
 from pydyn.operations.addition import Add
 from pydyn.operations.multiplication import Mul
@@ -44,13 +44,18 @@ def ibp(_expr, _expr_int):
 
 
 def integrate_by_parts_vectors(expr, vectors):
+
     # TODO update and clean this function
-    expr = expand(expr)
     expr = full_simplify(expr)
     for vector in vectors:
-        expr = col(expr, vector)  # TODO clean and update this function
+        expr = expand(expr)
+        print(expr)
+        expr = col(expr, vector)  
+        print(expr)
+        expr = vector_rules(expr)
+        print(expr)
         expr = ibp(expr, vector)
-        expr = full_simplify(expr)
+
 
     return expr
 

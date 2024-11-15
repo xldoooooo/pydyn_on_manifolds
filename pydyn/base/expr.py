@@ -2,6 +2,7 @@
 expr.py defines the Expr class
 """
 from enum import Enum
+from pydyn.utils.errors import UndefinedCaseError
 
 
 class Expression(Enum):
@@ -27,13 +28,14 @@ class Expr(object):
         self.isConstant = False
         self.isZero = False
         self.isOnes = False
-        self.isUnitNorm = False  # TODO add derivation dependency  # TODO add derivation level
+        self.isUnitNorm = False  # TODO add derivation dependency  
         self.isManifold = False
         self.isSymmetric = False
         self.isNumeric = False
 
         self.derv_num = 0 # derivative level # TODO
 
+    # 将name属性改为可调整定义的
     @property
     def name(self):
         return self._name
@@ -42,6 +44,7 @@ class Expr(object):
     def name(self, s):
         self._name = s
 
+    # 将value属性改为可调整定义的
     @property
     def value(self):
         return self._value
@@ -52,6 +55,7 @@ class Expr(object):
         if val is not None:
             self.isNumeric = True
 
+    # 将size属性改为可调整定义的
     @property
     def size(self):
         return self._size
@@ -60,6 +64,7 @@ class Expr(object):
     def size(self, value):
         self._size = value
 
+    # 将attr属性改为可调整定义的
     @property
     def attr(self):
         return self._attr
@@ -80,11 +85,16 @@ class Expr(object):
                 self.isOnes = False
             if 'Constant' in attributes:
                 self.isConstant = True
+            else:
+                self.isConstant = False
             if 'Manifold' in attributes:
                 self.isManifold = True
+            else:
+                self.isManifold = False
         else:
             self._attr = []
 
+    # 将type属性改为可调整定义的
     @property
     def type(self):
         return self._type
@@ -94,7 +104,7 @@ class Expr(object):
         self._type = expr_type
 
     def __str__(self):
-        raise NotImplementedError
+        raise NotImplementedError 
 
     def __eq__(self, other):
         return self.__str__() == other.__str__()
@@ -126,11 +136,19 @@ class Expr(object):
     def simplify(self):
         raise NotImplementedError
 
-    def variation_vector(self):
-        raise NotImplementedError
-
     def has(self, elem):
         return elem.__str__() == self.__str__()
+    
+    def expand(self):
+        if self.type == Expression.SCALAR:
+            return expand_scalar(self)
+        elif self.type == Expression.VECTOR:
+            return expand_vector(self)
+        elif self.type == Expression.MATRIX:
+            return expand_matrix(self)
+        else:
+            raise UndefinedCaseError
+
 
 
 class Manifold(object):

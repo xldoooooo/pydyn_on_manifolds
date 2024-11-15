@@ -2,7 +2,7 @@ from pydyn.operations.algebraic_manipulation import extract_coeff
 from pydyn.operations.expansion import expand
 from pydyn.operations.integration import integrate_by_parts_vectors
 from pydyn.operations.simplification import full_simplify
-
+from pydyn.operations.print_tree import print_latex
 
 def compute_eom(lagrangian, inf_work, variables):
     """
@@ -12,9 +12,7 @@ def compute_eom(lagrangian, inf_work, variables):
     # taking variation of lagrangian
     dL = lagrangian.delta()
     # infinitesimal action integral
-
     dS = dL + inf_work
-    dS = full_simplify(dS)
 
     # gather the variations (vectors)
     variation_vectors = []
@@ -23,6 +21,7 @@ def compute_eom(lagrangian, inf_work, variables):
         x = vec.get_variation_vector()
         variation_vectors.append(x)
         variation_vector_dots.append(x.diff())
+        
 
     for mat in variables[2]:
         x = mat.get_variation_vector()
@@ -30,9 +29,9 @@ def compute_eom(lagrangian, inf_work, variables):
         variation_vector_dots.append(x.diff())
 
     dS = integrate_by_parts_vectors(dS, variation_vector_dots)
-
     # simplify Tree
-    dS = expand(dS)
+    dS = full_simplify(dS)
+    print(dS)
     # TODO applyConstraints
     # TODO expand
     # TODO full_simplify

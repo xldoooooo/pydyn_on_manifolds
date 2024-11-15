@@ -1,11 +1,12 @@
 from pydyn.operations.addition import Add, MAdd, VAdd
 from pydyn.operations.binary_tree import has_nested_scalars
 from pydyn.operations.multiplication import Mul, SVMul, MVMul, SMMul, MMMul
-from pydyn.operations.geometry import Dot, Cross
-from pydyn.base.matrices import MatrixExpr
+from pydyn.operations.geometry import Dot, Cross, Hat
+from pydyn.base.matrices import MatrixExpr, I
 from pydyn.base.scalars import ScalarExpr, Scalar
 from pydyn.base.vectors import VectorExpr
 from pydyn.operations.expansion import expand
+from pydyn.operations.transpose import Transpose
 
 
 def pull(expr):
@@ -100,15 +101,17 @@ def pull(expr):
 
 
 def vector_rules(expr):
+    # 标量加法
     if isinstance(expr, Add):
         ruled_expr = Add()
         for n in expr.nodes:
             ruled_expr += vector_rules(n)
         return ruled_expr
+    # 标量乘法
     elif isinstance(expr, Mul):
         return vector_rules(expr.left) * vector_rules(expr.right)
 
-    # gather numerics
+    # Dot处理
     elif isinstance(expr, Dot):
         if isinstance(expr.left, Cross):
             raise NotImplementedError
@@ -118,12 +121,40 @@ def vector_rules(expr):
                 return Scalar('0', value=0, attr=['Constant', 'Zero'])
             else:
                 return expr
+        elif isinstance(expr.right, MVMul):
+            return Dot(expr.left, vector_rules(expr.right))
         else:
             if expr.left.isUnitNorm and expr.right.isUnitNorm and (expr.left == expr.right):
                 return Scalar('1', value=1, attr=['Constant', 'Ones'])
             else:
                 return expr
-    return expr
+    
+    elif isinstance(expr, MVMul):
+        if expr.left == I:
+            return vector_rules(expr.right)
+        elif isinstance(expr.right, MVMul):
+            return vector_rules(expr.left) * vector_rules(expr.right)
+        else:
+            return expr
+
+    elif isinstance(expr, MMMul):
+        if expr.right == I:
+            return expr.left
+        elif expr.left == I:
+            return expr.right
+        elif isinstance(expr.left, Hat):
+            return Hat(vector_rules(expr.left.expr)) * vector_rules(expr.right)
+        elif isinstance(expr.left,MMMul):
+            return vector_rules(expr.left) * expr.right
+        else:
+            return expr
+    elif isinstance(expr, Hat):
+        return Hat(vector_rules(expr.expr))
+    elif isinstance(expr, Transpose):
+        return Transpose(vector_rules(expr.expr))
+        
+    else:
+        return expr
 
 
 def combine(expr):
@@ -228,7 +259,7 @@ def simplify(expr):
             return expr
 
     elif isinstance(expr, MatrixExpr):
-        return
+        return expr
 
     return expr
 

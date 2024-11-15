@@ -28,20 +28,21 @@ class MatrixExpr(Expr, ABC):
         if type(other) == float or type(other) == int:
             other = Scalar('(' + str(other) + ')', value=other, attr=['Constant'])
         if other.type == Expression.SCALAR:
-            return SMMul(self, other)
+            return SMMul(other, self)
         elif other.type == Expression.VECTOR:
-            if type(other) == type(Transpose(None)):
-                raise ExpressionMismatchError
-            else:
-                return MVMul(self, other)
+            return MVMul(self, other)
         elif other.type == Expression.MATRIX:
             return MMMul(self, other)
         else:
             raise UndefinedCaseError
+    
+    def T(self):
+        from pydyn.operations.transpose import Transpose
+        return Transpose(self)
 
 
 class Matrix(MatrixExpr, ABC):
-    def __init__(self, s=None, size=(3, 3), value=None, attr=None):
+    def __init__(self, s, size=(3, 3), value=None, attr=None):
         super().__init__()
         self.name = s
         self.size = size
@@ -63,13 +64,10 @@ class Matrix(MatrixExpr, ABC):
 
     def delta(self):
         if self.isOnes or self.isZero or self.isConstant:
-            return Matrix('O', attr=['Constant', 'Zero'])
+            return Matrix('0', size=self.size, attr=['Constant', 'Zero'])
         else:
             from pydyn.operations.geometry import Delta
             return Delta(self)
-
-    def variation_vector(self):
-        return self.delta()
 
     def diff(self):
         if self.isConstant:
