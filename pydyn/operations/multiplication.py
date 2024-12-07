@@ -168,12 +168,12 @@ class SVMul(BinaryNode, VectorExpr):
         if type(r) == float or type(r) == int:
             r = Scalar('(' + str(r) + ')', value=r, attr=['Constant'])
         if l.type == Expression.VECTOR and r.type == Expression.SCALAR:
-            self.left = l
-            self.right = r
-            self.type = Expression.VECTOR
-        elif l.type == Expression.SCALAR and r.type == Expression.VECTOR:
             self.left = r
             self.right = l
+            self.type = Expression.VECTOR
+        elif l.type == Expression.SCALAR and r.type == Expression.VECTOR:
+            self.left = l
+            self.right = r
             self.type = Expression.VECTOR
         else:
             raise ExpressionMismatchError

@@ -68,7 +68,6 @@ class Scalar(ScalarExpr, ABC):
             from pydyn.operations.geometry import Delta
             return Delta(self)
 
-
     def diff(self):
         """differentiation"""
         if self.isConstant:

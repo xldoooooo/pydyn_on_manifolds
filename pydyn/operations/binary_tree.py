@@ -24,7 +24,7 @@ def is_member(expr, member):
 
 
 def has_nested_add(expr):
-    if isinstance(expr, Add) or isinstance(expr, VAdd) or isinstance(expr, MAdd):
+    if isinstance(expr, NaryNode):
         return True
     elif isinstance(expr, BinaryNode):
         return has_nested_add(expr.left) or has_nested_add(expr.right)

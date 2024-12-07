@@ -10,13 +10,13 @@ from pydyn.utils.errors import UndefinedCaseError
 
 
 def expand_scalar(expr):
-    if isinstance(expr, Add):
+    if isinstance(expr, Add): # 标量加法
         expanded_expr = Add()
         for n in expr.nodes:
             expanded_expr += expand(n)
         return expanded_expr
 
-    elif isinstance(expr, Mul):
+    elif isinstance(expr, Mul): # 标量乘法
         if isinstance(expr.left, Add) and isinstance(expr.right, Add):
             """(a+b)(c+d) = ac + ad + bc + bd"""
             expanded_expr = Add()
@@ -45,7 +45,7 @@ def expand_scalar(expr):
             else:
                 return expr
 
-    elif isinstance(expr, Dot):
+    elif isinstance(expr, Dot): # 向量点乘
         if isinstance(expr.left, VAdd) and isinstance(expr.right, VAdd):
             """(x+y).(u+v) = x.u + x.v + y.u + y.v"""
             expanded_expr = Add()
@@ -69,29 +69,29 @@ def expand_scalar(expr):
             if has_nested_add(expr):
                 return expand(Dot(expand(expr.left), expand(expr.right)))
             else:
-                return Dot(expand(expr.left), expand(expr.right))
+                return expr # 如果没有嵌套加法，则返回自身
 
     elif isinstance(expr, VVMul):
         raise NotImplementedError
 
-    return expr
+    return expr # 无法化简则返回自身
 
 
 def expand_vector(expr):
-    if isinstance(expr, VAdd):
+    if isinstance(expr, VAdd): # 向量加法
         expanded_expr = VAdd()
         for n in expr.nodes:
             expanded_expr += expand(n)
         return expanded_expr
 
-    elif isinstance(expr, MVMul):
-        if isinstance(expr.left, MAdd):
+    elif isinstance(expr, MVMul): # 矩阵乘向量
+        if isinstance(expr.left, MAdd): # 矩阵拆分
             """(A+B)x = Ax+Bx"""
             expanded_expr = VAdd()
             for n in expr.left.nodes:
                 expanded_expr += expand(MVMul(n, expr.right))
             return expanded_expr
-        elif isinstance(expr.right, VAdd):
+        elif isinstance(expr.right, VAdd): # 向量拆分
             """A(x+y) = Ax + Ay"""
             expanded_expr = VAdd()
             for n in expr.right.nodes:
@@ -101,23 +101,22 @@ def expand_vector(expr):
             if has_nested_add(expr):
                 return expand(MVMul(expand(expr.left), expand(expr.right)))
             else:
-                return expr
+                return expr # 如果没有嵌套加法，则返回自身
 
-    elif isinstance(expr, SVMul):
-        if isinstance(expr.left, VAdd):
+    elif isinstance(expr, SVMul): # 标量乘向量
+        if isinstance(expr.right, VAdd):
             """(x+y)a=xa+ya"""
             expanded_expr = VAdd()
-            for n in expr.left.nodes:
-                expanded_expr += expand(SVMul(n, expr.right))
+            for n in expr.right.nodes:
+                expanded_expr += expand(SVMul(expr.left, n))
             return expanded_expr
         else:
             if has_nested_add(expr):
                 return expand(SVMul(expand(expr.left), expand(expr.right)))
             else:
                 return expr
-        pass
 
-    elif isinstance(expr, Cross):
+    elif isinstance(expr, Cross): # 暂时不用
         if isinstance(expr.left, VAdd) and isinstance(expr.right, VAdd):
             expanded_expr = VAdd()
             for nl in expr.left.nodes:
@@ -193,3 +192,13 @@ def expand_matrix(expr):
 
     return expr
 
+
+def expand(self):
+    if self.type == Expression.SCALAR:
+        return expand_scalar(self)
+    elif self.type == Expression.VECTOR:
+        return expand_vector(self)
+    elif self.type == Expression.MATRIX:
+        return expand_matrix(self)
+    else:
+        raise UndefinedCaseError

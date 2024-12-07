@@ -208,6 +208,7 @@ def efm(expr, vec):
     else:
         raise UndefinedCaseError
 
+
 def getAB(expr, vec):
     "从expr矩阵中提取Hat(vec)的左右两边"
     if isinstance(expr, MMMul):

@@ -4,7 +4,6 @@ expr.py defines the Expr class
 from enum import Enum
 from pydyn.utils.errors import UndefinedCaseError
 
-
 class Expression(Enum):
     SCALAR = 1
     VECTOR = 2
@@ -139,16 +138,6 @@ class Expr(object):
     def has(self, elem):
         return elem.__str__() == self.__str__()
     
-    def expand(self):
-        if self.type == Expression.SCALAR:
-            return expand_scalar(self)
-        elif self.type == Expression.VECTOR:
-            return expand_vector(self)
-        elif self.type == Expression.MATRIX:
-            return expand_matrix(self)
-        else:
-            raise UndefinedCaseError
-
 
 
 class Manifold(object):

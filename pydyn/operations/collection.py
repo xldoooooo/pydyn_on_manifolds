@@ -6,6 +6,7 @@ from pydyn.operations.transpose import Transpose
 from pydyn.operations.algebraic_manipulation import getAB
 
 
+# 从标量中提取指定的向量
 def col(_scalar, _vector):
     """Collect scalar expression with respect to vector"""
     # Base Cases

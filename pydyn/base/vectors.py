@@ -69,6 +69,10 @@ class Vector(VectorExpr, ABC): # 实例化向量
         else:
             from pydyn.operations.geometry import Delta
             return Delta(self)
+        
+    def get_variation_vector(self):
+        from pydyn.operations.geometry import Delta
+        return Delta(self)
 
     def diff(self):
         if self.isConstant:

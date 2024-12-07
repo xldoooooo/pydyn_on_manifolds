@@ -45,8 +45,7 @@ def ibp(_expr, _expr_int):
 
 def integrate_by_parts_vectors(expr, vectors):
 
-    # TODO update and clean this function
-    expr = full_simplify(expr)
+    expr = full_simplify(expr) # 代入变分并化简
     for vector in vectors:
         expr = expand(expr)
         print(expr)
