@@ -2,16 +2,16 @@ from pydyn.operations.addition import Add, MAdd, VAdd
 from pydyn.operations.binary_tree import has_nested_scalars
 from pydyn.operations.multiplication import Mul, SVMul, MVMul, SMMul, MMMul
 from pydyn.operations.geometry import Dot, Cross, Hat
-from pydyn.base.matrices import MatrixExpr, I
+from pydyn.base.matrices import MatrixExpr, I, O
 from pydyn.base.scalars import ScalarExpr, Scalar
-from pydyn.base.vectors import VectorExpr
+from pydyn.base.vectors import VectorExpr, ZeroVector
 from pydyn.operations.expansion import expand
 from pydyn.operations.transpose import Transpose
 
 
 def pull(expr):
     """
-    Function to pull scalar components out of vectors and matrices
+    将向量或矩阵中的标量元素提取出来 
     """
     if isinstance(expr, ScalarExpr):
         if isinstance(expr, Add):
@@ -23,9 +23,9 @@ def pull(expr):
             return pull(expr.left) * pull(expr.right)
         elif isinstance(expr, Dot):
             if isinstance(expr.left, SVMul):
-                return pull(expr.left.right * Dot(expr.left.left, expr.right))
+                return pull(expr.left.left) * pull(Dot(expr.left.right, expr.right))
             elif isinstance(expr.right, SVMul):
-                return pull(expr.right.right * Dot(expr.right.left, expr.left))
+                return pull(expr.right.left) * pull(Dot(expr.left, expr.right.right))
             else:
                 if has_nested_scalars(expr):
                     return pull(Dot(pull(expr.left), pull(expr.right)))
@@ -37,48 +37,33 @@ def pull(expr):
     elif isinstance(expr, VectorExpr):
         if isinstance(expr, MVMul):
             if isinstance(expr.left, SMMul):
-                return pull(SVMul(MVMul(expr.left.left, expr.right), expr.left.right))
+                return pull(SVMul(pull(expr.left.left), pull(MVMul(expr.left.right, expr.right))))
             elif isinstance(expr.right, SVMul):
-                return pull(SVMul(MVMul(expr.left, expr.right.left), expr.right.right))
+                return pull(SVMul(pull(expr.right.left), pull(MVMul(expr.left, expr.right.right))))
             else:
-                if has_nested_scalars(expr):
+                if has_nested_scalars(expr.left) or has_nested_scalars(expr.right):
                     return pull(MVMul(pull(expr.left), pull(expr.right)))
                 else:
                     return expr
         elif isinstance(expr, SVMul):
-            if isinstance(expr.left, SVMul):
-                return pull(SVMul(expr.left.left, expr.left.right * expr.right))
+            if isinstance(expr.right, SVMul):
+                return pull(SVMul(pull(expr.left*expr.right.left), pull(expr.right.right)))
             else:
                 if has_nested_scalars(expr):
                     return pull(SVMul(pull(expr.left), pull(expr.right)))
-                else:
-                    return expr
-        elif isinstance(expr, Cross):
-            if isinstance(expr.left, SVMul) and isinstance(expr.right, SVMul):
-                return pull(SVMul(Cross(expr.left.left, expr.right.left), expr.left.right * expr.right.right))
-            elif isinstance(expr.left, SVMul):
-                return pull(SVMul(Cross(expr.left.left, expr.right), expr.left.right))
-            elif isinstance(expr.right, SVMul):
-                return pull(SVMul(Cross(expr.left, expr.right.left), expr.right.right))
-            else:
-                if has_nested_scalars(expr):
-                    return pull(Cross(pull(expr.left), pull(expr.right)))
                 else:
                     return expr
         else:
             return expr
 
     elif isinstance(expr, MatrixExpr):
-        if isinstance(expr, MAdd):
-            return pull(expr.left) + pull(expr.right)
-
-        elif isinstance(expr, MMMul):
+        if isinstance(expr, MMMul):
             if isinstance(expr.left, SMMul) and isinstance(expr.right, SMMul):
-                return pull(SMMul((expr.left.left * expr.right.left), (expr.left.right * expr.right.right)))
+                return pull(SMMul(pull(expr.left.left * expr.right.left), pull(expr.left.right * expr.right.right)))
             elif isinstance(expr.right, SMMul):
-                return pull(SMMul(MMMul(expr.left, expr.right.left), expr.right.right))
+                return pull(SMMul(pull(expr.right.left), pull(MMMul(expr.left, expr.right.right))))
             elif isinstance(expr.left, SMMul):
-                return pull(SMMul(MMMul(expr.left.left, expr.right), expr.left.right))
+                return pull(SMMul(pull(expr.left.left), pull(MMMul(expr.left.right, expr.right))))
             else:
                 if has_nested_scalars(expr):
                     return pull(MMMul(pull(expr.left), pull(expr.right)))
@@ -86,11 +71,11 @@ def pull(expr):
                     return expr
 
         elif isinstance(expr, SMMul):
-            if isinstance(expr.left, SMMul):
-                return pull(SMMul(expr.left.left, expr.left.right * expr.right))
+            if isinstance(expr.right, SMMul):
+                return pull(SMMul(pull(expr.left*expr.right.left), pull(expr.right.right)))
             else:
                 if has_nested_scalars(expr):
-                    return pull(SMMul(pull(expr.left), expr.right))
+                    return pull(SMMul(pull(expr.left), pull(expr.right)))
                 else:
                     return expr
         else:
@@ -101,6 +86,10 @@ def pull(expr):
 
 
 def vector_rules(expr):
+    """
+        q'*q = 1, R'*R = I, 叉乘法则
+        dq'*dq = 0,
+    """
     # 标量加法
     if isinstance(expr, Add):
         ruled_expr = Add()
@@ -110,18 +99,9 @@ def vector_rules(expr):
     # 标量乘法
     elif isinstance(expr, Mul):
         return vector_rules(expr.left) * vector_rules(expr.right)
-
     # Dot处理
     elif isinstance(expr, Dot):
-        if isinstance(expr.left, Cross):
-            raise NotImplementedError
-        elif isinstance(expr.right, Cross):
-            if (expr.left == expr.right.left) or (expr.left == expr.right.right) or (
-                    expr.right.left == expr.right.right):
-                return Scalar('0', value=0, attr=['Constant', 'Zero'])
-            else:
-                return expr
-        elif isinstance(expr.right, MVMul):
+        if isinstance(expr.right, MVMul):
             return Dot(expr.left, vector_rules(expr.right))
         else:
             if expr.left.isUnitNorm and expr.right.isUnitNorm and (expr.left == expr.right):
@@ -130,19 +110,13 @@ def vector_rules(expr):
                 return expr
     
     elif isinstance(expr, MVMul):
-        if expr.left == I:
-            return vector_rules(expr.right)
-        elif isinstance(expr.right, MVMul):
+        if isinstance(expr.right, MVMul):
             return vector_rules(expr.left) * vector_rules(expr.right)
         else:
             return expr
 
     elif isinstance(expr, MMMul):
-        if expr.right == I:
-            return expr.left
-        elif expr.left == I:
-            return expr.right
-        elif isinstance(expr.left, Hat):
+        if isinstance(expr.left, Hat):
             return Hat(vector_rules(expr.left.expr)) * vector_rules(expr.right)
         elif isinstance(expr.left,MMMul):
             return vector_rules(expr.left) * expr.right
@@ -205,8 +179,10 @@ def terms(expr):
 
 
 def simplify(expr):
-    """combines constants and eliminates zeros """
-    if isinstance(expr, ScalarExpr):  # TODO modify this to Expression.SCALAR?
+    """
+        常量计算，挤掉零元和单位元
+    """
+    if isinstance(expr, ScalarExpr):  
         if isinstance(expr, Add):
             """Remove zeros"""
             value = 0
@@ -229,16 +205,21 @@ def simplify(expr):
                 return expr.right
             elif expr.right.value == 1:
                 return expr.left
-            else:
+            elif expr.left.value is not None or expr.right.value is not None:
                 val = combine(expr)
                 left = Scalar('(' + str(val) + ')', value=val, attr=['Constant'])
                 right = terms(expr)
                 if val == 1:
                     return right
                 return Mul(left, right)
-
+            else:
+                return Mul(simplify(expr.left), simplify(expr.right))
+            
         elif isinstance(expr, Dot):
-            return expr
+            if isinstance(expr.left, MVMul) and isinstance(expr.right, MVMul):
+                if expr.left.left.isManifold and expr.right.left.isManifold and expr.left.left == expr.right.left:
+                    return simplify(Dot(expr.left.right, expr.right.right))
+            return Dot(simplify(expr.left), simplify(expr.right))
         else:
             return expr
 
@@ -255,25 +236,57 @@ def simplify(expr):
             return VAdd(sym_exprs)
         elif isinstance(expr, SVMul):
             return SVMul(simplify(expr.left), simplify(expr.right))
+        elif isinstance(expr, MVMul):
+            if expr.left == I:
+                return expr.right
+            elif expr.left == O:
+                return ZeroVector
+            else:
+                return MVMul(simplify(expr.left), simplify(expr.right))
         else:
             return expr
 
     elif isinstance(expr, MatrixExpr):
+        if isinstance(expr, MAdd):
+            sym_exprs = []
+            for n in expr.nodes:
+                if n.isZero:
+                    continue
+                elif isinstance(n, SMMul) and n.value == 0:
+                    continue
+                else:
+                    sym_exprs.append(simplify(n))
+            return MAdd(sym_exprs)
+        elif isinstance(expr, SMMul):
+            return SMMul(simplify(expr.left), simplify(expr.right))
+        elif isinstance(expr, MMMul):
+            if expr.left == O or expr.right == O:
+                return O
+            elif expr.left == I:
+                return simplify(expr.right)
+            elif expr.right == I:
+                return simplify(expr.left)
+            else:
+                return MMMul(simplify(expr.left), simplify(expr.right))
+        elif isinstance(expr, Hat):
+            return Hat(simplify(expr.expr))
         return expr
+    elif isinstance(expr, Transpose):
+        return Transpose(simplify(expr.expr))
 
     return expr
 
 
 def full_simplify(expr):
-    """simplifies expr using standard operations (# TODO)"""
+    """simplifies expr using standard operations"""
 
-    # expand
+    # 展开表达式
     expr_ = expand(expr)
-    # pull
+    
+    # 提取出向量和矩阵中的标量,消除SM和SV，只剩SS
     expr_ = pull(expr_)
-    # apply vector rules
-    expr_ = vector_rules(expr_)
-    # simplify
-    expr_ = simplify(expr_)
 
+    # 常量计算，消去零元和单位元
+    expr_ = simplify(expr_)
+    
     return expr_

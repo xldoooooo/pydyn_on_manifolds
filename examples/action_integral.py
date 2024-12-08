@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/hyy/pydyn_on_manifolds')
+sys.path.append('/home/xld/pydyn_on_manifolds-cc')
 from pydyn import *
 from pydyn.base.scalars import Scalar, getScalars
 from pydyn.base.vectors import Vector, S2, TS2, TSO3, ZeroVector, getVectors
@@ -19,7 +19,7 @@ from pydyn.base.matrices import MatrixExpr, ZeroMatrix
 from pydyn.base.scalars import ScalarExpr, Zero
 from pydyn.base.vectors import VectorExpr
 from pydyn.utils.errors import UndefinedCaseError
-from pydyn.operations.simplification import full_simplify
+from pydyn.operations.simplification import full_simplify, pull
 from pydyn.operations.expansion import *
 from pydyn.operations.collection import *
 from pydyn.operations.algebraic_manipulation import efs,efv,efm
@@ -50,10 +50,7 @@ if __name__ == "__main__":
 
     print('done')
 
-    # c = Dot(eta,Hat(I*rho)*(R*I).T()*R*Hat(Om)*rho)*m
-    # c = vector_rules(c)
-    # print(c)
-
+  
 
 
 

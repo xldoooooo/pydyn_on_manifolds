@@ -37,7 +37,7 @@ def col(_scalar, _vector):
                     return Dot(_scalar.left.right, MVMul(_scalar.left.left.T(),_scalar.right))
                 else:
                     A, B = getAB(_scalar.left.left, _vector)
-                    return Dot(_vector, MVMul(Hat(MVMul(B,_scalar.left.right)),MVMul(A.T(),_scalar.right)))
+                    return Dot(_vector, MVMul(Hat(MVMul(B,_scalar.left.right)),MVMul(Transpose(A),_scalar.right)))
             else:
                 raise NotImplementedError
         

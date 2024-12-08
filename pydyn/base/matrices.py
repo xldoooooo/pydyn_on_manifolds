@@ -64,14 +64,14 @@ class Matrix(MatrixExpr, ABC):
 
     def delta(self):
         if self.isOnes or self.isZero or self.isConstant:
-            return Matrix('0', size=self.size, attr=['Constant', 'Zero'])
+            return Matrix('O', size=self.size, attr=['Constant', 'Zero'])
         else:
             from pydyn.operations.geometry import Delta
             return Delta(self)
 
     def diff(self):
         if self.isConstant:
-            return Matrix(s='0', size=self.size, attr=['Constant', 'Zero'])
+            return Matrix(s='O', size=self.size, attr=['Constant', 'Zero'])
         else:
             return Matrix(s='dot_' + self.name, size=self.size)
 
@@ -123,7 +123,7 @@ class SO3(Matrix, Manifold, ABC):
         return MMMul(self, Hat(self.get_tangent_vector()))
 
 
-ZeroMatrix = Matrix('0', attr=['Constant', 'Zero'])
+ZeroMatrix = Matrix('O', attr=['Constant', 'Zero'])
 IdentityMatrix = Matrix('I', attr=['Constant', 'Identity'])
 O = ZeroMatrix
 I = IdentityMatrix

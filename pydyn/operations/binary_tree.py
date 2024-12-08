@@ -39,7 +39,7 @@ def has_nested_scalars(expr):
         if isinstance(expr, BinaryNode):
             return has_nested_scalars(expr.left) or has_nested_scalars(expr.right)
         else:
-            return False  # TODO what about just scalar addition or multiplication
+            return False 
 
     elif isinstance(expr, VectorExpr):
         if isinstance(expr, BinaryNode):

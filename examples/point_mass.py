@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/hyy/pydyn_on_manifolds')
+sys.path.append('/home/xld/pydyn_on_manifolds-cc')
 from pydyn import *
 from pydyn.base.scalars import Scalar, getScalars
 from pydyn.base.vectors import Vector, S2, TS2, TSO3, ZeroVector, getVectors
